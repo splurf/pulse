@@ -1,0 +1,10 @@
+[package]
+name = "client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cpal = "0.15.3"
+opus = "0.3.0"
+pulse = { path = ".." }
+spin_sleep = "1.2.1"
