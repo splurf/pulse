@@ -1,7 +1,6 @@
 mod base;
 
 use base::*;
-use opus::{Application, Channels};
 
 use std::{
     io::stdin,
@@ -11,6 +10,7 @@ use std::{
 };
 
 use cpal::traits::{DeviceTrait, StreamTrait};
+use opus::{Application, Channels};
 
 pub type Ping = Arc<RwLock<Duration>>;
 
@@ -31,9 +31,6 @@ fn main() -> Result {
             outputs.into_iter().next().ok_or(CpalError::Unexpected)?,
         )
     };
-
-    println!("INPUT => {:?}", input);
-    println!("OUTPUT => {:?}", output);
 
     // let tcp = TcpClient::new(cfg.addr_remote())?;
     let udp = UdpClient::new(cfg.addr_local(), cfg.addr_remote())?;
@@ -78,8 +75,8 @@ fn main() -> Result {
         )
         .unwrap();
 
-    debug!("{:?}", input);
-    debug!("{:?}", output);
+    info!("[ IN  ] => {:?}", input);
+    info!("[ OUT ] => {:?}", output);
 
     input_stream.play().unwrap();
     output_stream.play().unwrap();

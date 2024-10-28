@@ -1,13 +1,12 @@
-use opus::{Bitrate, Decoder, Encoder};
-
 use crate::*;
 
 use std::thread::{Scope, ScopedJoinHandle};
 
+use opus::{Decoder, Encoder};
+
 // Constants
 pub const SAMPLE_RATE: u32 = 48_000; // 48 kHz
 pub const FRAME_SIZE: usize = 960; // 20 ms at 48 kHz
-pub const BITRATE: Bitrate = Bitrate::Bits(64_000); // 64 kbps (adjust as needed)
 
 /// Encodes audio using the Opus codec
 fn encode_audio(encoder: &mut Encoder, input: &[i16]) -> Result<Vec<u8>, Error> {
@@ -48,7 +47,6 @@ fn handle_input<'a>(
 
         // Initialize the Opus encoder for audio applications with voice focus
         let mut encoder = Encoder::new(SAMPLE_RATE, Channels::Mono, Application::Audio).unwrap();
-        encoder.set_bitrate(BITRATE).unwrap();
 
         // repeatedly send user input to server
         loop {
