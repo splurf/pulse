@@ -46,8 +46,8 @@ fn main() -> Result {
     let input_stream = input
         .build_input_stream(
             input.config(),
-            move |data: &[i16], _: &cpal::InputCallbackInfo| {
-                if data.iter().any(|&sample| sample.abs() > 10) {
+            move |data: &[i16], _| {
+                if data.iter().any(|&sample| sample.abs() > 32) {
                     input_sender.send(data.to_vec()).unwrap();
                 }
             },
@@ -62,13 +62,13 @@ fn main() -> Result {
     let output_stream = output
         .build_output_stream(
             output.config(),
-            move |data: &mut [i16], _: &cpal::OutputCallbackInfo| {
-                if let Ok(decoded) = output_receiver.try_recv() {
-                    data.copy_from_slice(&decoded);
+            move |data: &mut [i16], _| {
+                if let Ok(src) = output_receiver.try_recv() {
+                    let n = src.len().min(data.len());
+                    data[..n].copy_from_slice(&src[..n]);
+                    data[n..].fill(0);
                 } else {
-                    unsafe {
-                        std::ptr::write_bytes(data.as_mut_ptr(), 0, data.len());
-                    }
+                    data.fill(0);
                 }
             },
             move |err| {

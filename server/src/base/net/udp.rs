@@ -33,7 +33,7 @@ fn handle_write<'a>(
 ) -> ScopedJoinHandle<'a, Result> {
     s.spawn(move || {
         s.spawn(move || {
-            let delay = Duration::from_secs_f32((1000.0 / 512.0) / 1000.0);
+            let delay = Duration::from_secs_f32((1000.0 / 256.0) / 1000.0);
             let spinner = SpinSleeper::default();
 
             udp.socket()
