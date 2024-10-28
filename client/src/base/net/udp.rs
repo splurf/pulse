@@ -1,69 +1,63 @@
-use opus::{Application, Channels, Decoder, Encoder};
+use opus::{Bitrate, Decoder, Encoder};
 
 use crate::*;
 
 use std::thread::{Scope, ScopedJoinHandle};
 
-fn _compress_audio(pcm_samples: Vec<i16>, sample_rate: u32) -> Result<Vec<u8>> {
-    // Set up the Opus encoder for 1-channel (mono) audio.
-    let channels = Channels::Mono;
-    let mut encoder = Encoder::new(sample_rate, channels, Application::Audio).unwrap();
+// Constants
+pub const SAMPLE_RATE: u32 = 48_000; // 48 kHz
+pub const FRAME_SIZE: usize = 960; // 20 ms at 48 kHz
+pub const BITRATE: Bitrate = Bitrate::Bits(64_000); // 64 kbps (adjust as needed)
 
-    // // Convert `f32` samples (-1.0 to 1.0) to `i16` samples (-32768 to 32767)
-    // let pcm_samples: Vec<i16> = data
-    //     .iter()
-    //     .map(|&sample| (sample * i16::MAX as f32) as i16)
-    //     .collect();
+/// Encodes audio using the Opus codec
+fn encode_audio(encoder: &mut Encoder, input: &[i16]) -> Result<Vec<u8>, Error> {
+    // Prepare the output buffer (Opus is compressed, so buffer size can be smaller)
+    let mut output = vec![0u8; input.len() * 2]; // Overestimate buffer size
 
-    // Prepare a buffer to store the compressed data
-    let max_packet_size = 65536; // Opus packets are typically small
-    let mut compressed_data = vec![0; max_packet_size];
+    // Encode the PCM data
+    let size = encoder.encode(input, &mut output).unwrap();
 
-    // Compress the PCM data using Opus
-    let compressed_size = encoder.encode(&pcm_samples, &mut compressed_data).unwrap();
+    output.truncate(size);
 
-    // Truncate to the actual compressed size
-    compressed_data.truncate(compressed_size);
-
-    Ok(compressed_data)
+    // Return the encoded data (only the valid encoded portion)
+    Ok(output)
 }
 
-fn _decode_audio(compressed_data: &[u8], sample_rate: u32, frame_size: usize) -> Result<Vec<i16>> {
-    // Set up the Opus decoder for 1-channel (mono) audio.
-    let channels = Channels::Mono;
-    let mut decoder = Decoder::new(sample_rate, channels).unwrap();
+/// Decodes audio using the Opus codec
+fn decode_audio(decoder: &mut Decoder, input: &[u8]) -> Result<Vec<i16>, Error> {
+    // Prepare the output buffer (PCM data in 16-bit samples)
+    let mut output = vec![0i16; FRAME_SIZE];
 
-    // Prepare a buffer to hold the decoded PCM samples
-    let mut pcm_samples = vec![0; frame_size * channels as usize]; // Adjust size according to frame size and channels
+    // Decode the Opus data
+    let size = decoder.decode(input, &mut output, false).unwrap();
 
-    // Decode the compressed audio
-    let decoded_samples = decoder
-        .decode(compressed_data, &mut pcm_samples, false)
-        .unwrap();
+    output.truncate(size);
 
-    // Truncate to the actual number of decoded samples
-    pcm_samples.truncate(decoded_samples * channels as usize);
-
-    Ok(pcm_samples)
+    // Return the encoded data (only the valid encoded portion)
+    Ok(output)
 }
 
 fn handle_input<'a>(
     s: &'a Scope<'a, '_>,
     mut udp: UdpClient,
-    input_receiver: Receiver<Vec<f32>>,
+    input_receiver: Receiver<Vec<i16>>,
 ) -> ScopedJoinHandle<'a, Result> {
     s.spawn(move || -> Result<()> {
         udp.socket()
             .set_write_timeout(Some(Duration::from_millis(1)))?;
 
+        // Initialize the Opus encoder for audio applications with voice focus
+        let mut encoder = Encoder::new(SAMPLE_RATE, Channels::Mono, Application::Audio).unwrap();
+        encoder.set_bitrate(BITRATE).unwrap();
+
         // repeatedly send user input to server
         loop {
             let input = input_receiver.recv()?;
 
-            // let data = compress_audio(input, 48_000)?;
+            let data = encode_audio(&mut encoder, input.as_slice()).unwrap();
 
             // all in one
-            udp.send(&Packet::Data(input))?;
+            udp.send(&Packet::Data(data))?;
         }
     })
 }
@@ -71,11 +65,14 @@ fn handle_input<'a>(
 pub fn handle_udp<'a, 'b: 'a>(
     s: &'a Scope<'a, '_>,
     udp: UdpClient,
-    input_receiver: Receiver<Vec<f32>>,
-    output_sender: Sender<Vec<f32>>,
+    input_receiver: Receiver<Vec<i16>>,
+    output_sender: Sender<Vec<i16>>,
 ) -> ScopedJoinHandle<'a, Result> {
     s.spawn(move || {
         let _ = handle_input(s, udp.try_clone()?, input_receiver);
+
+        // Initialize the Opus decoder
+        let mut decoder = Decoder::new(SAMPLE_RATE, Channels::Mono).unwrap();
 
         let mut buf = init_buf();
 
@@ -85,12 +82,9 @@ pub fn handle_udp<'a, 'b: 'a>(
 
             // debug!("{:?}", packet);
 
-            match packet {
-                Packet::Data(output) => {
-                    // let data = decode_audio(&output, 48_000, 960)?;
-                    output_sender.send(output)?
-                }
-                _ => (),
+            if let Packet::Data(output) = packet {
+                let data = decode_audio(&mut decoder, output.as_slice())?;
+                output_sender.send(data)?
             }
         }
     })

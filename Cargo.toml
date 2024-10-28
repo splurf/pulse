@@ -14,7 +14,8 @@ nalgebra = { version = "0.33.1", features = ["serde-serialize"] }
 packet_enum = "0.1.1"
 parking_lot = "0.12.3"
 sdl2 = "0.37.0"
-serde = { version = "1.0.213", features = ["derive"] }
+serde = { version = "1.0.214", features = ["derive"] }
+serde_bytes = "0.11.15"
 socket2 = "0.5.7"
 strum = { version = "0.26.3", features = ["derive"] }
 thiserror = "1.0.65"
@@ -26,7 +27,4 @@ members = ["client", "server"]
 [profile.release]
 lto = true
 codegen-units = 1
-
-[profile.production]
-inherits = "release"
 strip = true

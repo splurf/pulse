@@ -14,9 +14,9 @@ use socket2::{SockAddr, Socket};
 pub trait UdpConn {
     fn socket(&self) -> &Socket;
 
-    fn send_to(&self, packet: &impl AsPacketSend, addr: SockAddr) -> PulseResult<usize> {
+    fn send_to(&self, packet: &impl AsPacketSend, addr: &SockAddr) -> PulseResult<usize> {
         let bytes = serialize(packet)?;
-        self.socket().send_to(&bytes, &addr).map_err(Into::into)
+        self.socket().send_to(&bytes, addr).map_err(Into::into)
     }
 
     fn recv_from<'a, K: AsPacketKind, T: AsPacketRecv<'a, K>>(

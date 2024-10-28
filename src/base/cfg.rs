@@ -10,20 +10,20 @@ const fn default_addr() -> SocketAddr {
 pub struct Config {
     /// IP address
     #[arg(long, default_value_t = default_addr())]
-    addr_local: SocketAddr,
+    local_addr: SocketAddr,
 
     /// IP address
     #[arg(long, default_value_t = default_addr())]
-    addr_remote: SocketAddr,
+    remote_addr: SocketAddr,
 }
 
 impl Config {
     pub const fn addr_local(&self) -> SocketAddr {
-        self.addr_local
+        self.local_addr
     }
 
     pub const fn addr_remote(&self) -> SocketAddr {
-        self.addr_remote
+        self.remote_addr
     }
 }
 

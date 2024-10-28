@@ -77,6 +77,7 @@ impl Handshake {
 
 #[derive(PacketEnum, Serialize, Deserialize, Debug)]
 pub enum Packet {
-    Data(Vec<f32>),
+    #[serde(with = "serde_bytes")]
+    Data(Vec<u8>),
     Ping,
 }

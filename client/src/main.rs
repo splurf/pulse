@@ -1,8 +1,14 @@
 mod base;
 
 use base::*;
+use opus::{Application, Channels};
 
-use std::{io::stdin, sync::Arc, thread::scope, time::Duration};
+use std::{
+    io::stdin,
+    sync::{Arc, RwLock},
+    thread::scope,
+    time::Duration,
+};
 
 use cpal::traits::{DeviceTrait, StreamTrait};
 
@@ -29,19 +35,19 @@ fn main() -> Result {
     println!("INPUT => {:?}", input);
     println!("OUTPUT => {:?}", output);
 
-    // let tcp = TcpClient::new(cfg.addr())?;
+    // let tcp = TcpClient::new(cfg.addr_remote())?;
     let udp = UdpClient::new(cfg.addr_local(), cfg.addr_remote())?;
 
     // Buffer to store input samples to send to output
-    let (input_sender, input_receiver) = unbounded::<Vec<f32>>();
-    let (output_sender, output_receiver) = unbounded::<Vec<f32>>();
+    let (input_sender, input_receiver) = bounded::<Vec<i16>>(1024);
+    let (output_sender, output_receiver) = bounded::<Vec<i16>>(1024);
 
     // Input stream: capture audio and adjust sensitivity
     let input_stream = input
         .build_input_stream(
-            &input.config(),
-            move |data: &[f32], _: &cpal::InputCallbackInfo| {
-                if data.iter().any(|&sample| sample > 0.01) {
+            input.config(),
+            move |data: &[i16], _: &cpal::InputCallbackInfo| {
+                if data.iter().any(|&sample| sample.abs() > 10) {
                     input_sender.send(data.to_vec()).unwrap();
                 }
             },
@@ -55,12 +61,13 @@ fn main() -> Result {
     // Output stream: play received audio data from the input stream
     let output_stream = output
         .build_output_stream(
-            &output.config(),
-            move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
-                if let Ok(adjusted_data) = output_receiver.recv() {
-                    // Fill output buffer with adjusted data
-                    for (out_sample, &in_sample) in data.iter_mut().zip(adjusted_data.iter()) {
-                        *out_sample = in_sample;
+            output.config(),
+            move |data: &mut [i16], _: &cpal::OutputCallbackInfo| {
+                if let Ok(decoded) = output_receiver.try_recv() {
+                    data.copy_from_slice(&decoded);
+                } else {
+                    unsafe {
+                        std::ptr::write_bytes(data.as_mut_ptr(), 0, data.len());
                     }
                 }
             },

@@ -4,8 +4,10 @@ use std::{collections::HashMap, ops::Deref};
 
 use cpal::{
     traits::{DeviceTrait, HostTrait},
-    StreamConfig,
+    BufferSize, StreamConfig,
 };
+
+pub type Devices<'a> = HashMap<&'a str, (Vec<Device>, Vec<Device>)>;
 
 pub struct Device {
     inner: cpal::Device,
@@ -14,7 +16,9 @@ pub struct Device {
 }
 
 impl Device {
-    pub fn new(inner: cpal::Device, name: String, config: StreamConfig) -> Self {
+    pub fn new(inner: cpal::Device, name: String, mut config: StreamConfig) -> Self {
+        config.buffer_size = BufferSize::Default;
+
         Self {
             inner,
             name,
@@ -30,7 +34,7 @@ impl Device {
         &self.config
     }
 
-    pub fn get_host_devices<'a>() -> Result<HashMap<&'a str, (Vec<Self>, Vec<Self>)>, CpalError> {
+    pub fn get_host_devices<'a>() -> Result<Devices<'a>, CpalError> {
         let available_hosts = cpal::available_hosts();
 
         if available_hosts.is_empty() {
