@@ -1,5 +1,5 @@
 # pulse
-A client/server model designed for efficient distribution of audio packets.
+Real-time, low-latency audio lounge using Opus codec.
 
 ## Features
 - UDP for packet transmission.
