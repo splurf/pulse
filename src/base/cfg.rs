@@ -18,11 +18,11 @@ pub struct Config {
 }
 
 impl Config {
-    pub const fn addr_local(&self) -> SocketAddr {
+    pub const fn local_addr(&self) -> SocketAddr {
         self.local_addr
     }
 
-    pub const fn addr_remote(&self) -> SocketAddr {
+    pub const fn remote_addr(&self) -> SocketAddr {
         self.remote_addr
     }
 }

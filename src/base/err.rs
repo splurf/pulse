@@ -2,16 +2,22 @@ use crate::*;
 
 pub type PulseResult<T = (), E = PulseError> = std::result::Result<T, E>;
 
-#[derive(ThisError, Debug)]
+#[derive(thiserror::Error, Debug)]
 pub enum PacketError {
-    #[error("Handshake({0})")]
-    Handshake(#[from] HandshakeError),
-
     #[error("Expected {lhs:?}, found {rhs:?}")]
     Unexpected { lhs: String, rhs: String },
 }
 
-#[derive(ThisError, Debug, Display)]
+impl PacketError {
+    pub fn unexpected<K: AsPacketKind>(lhs: K, rhs: K) -> Self {
+        Self::Unexpected {
+            lhs: format!("{:?}", lhs),
+            rhs: format!("{:?}", rhs),
+        }
+    }
+}
+
+#[derive(thiserror::Error, Debug, Display)]
 pub enum SyncError {
     Send,
     TrySend,
@@ -50,13 +56,6 @@ impl From<TryRecvError> for SyncError {
             Self::TryRecv
         }
     }
-}
-
-#[derive(thiserror::Error, Debug, Display)]
-pub enum HandshakeError {
-    InvalidContent,
-    InvalidType,
-    Unknown,
 }
 
 #[derive(thiserror::Error, Debug)]

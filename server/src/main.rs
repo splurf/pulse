@@ -20,7 +20,7 @@ fn main() -> Result {
     // info!("TCP @ {}", tcp.local_addr()?);
 
     // init UDP server
-    let udp = UdpServer::new(cfg.addr_local())?;
+    let udp = UdpServer::new(cfg.local_addr())?;
     info!("UDP @ {:?}", udp.socket().local_addr()?);
 
     udp.socket().set_recv_buffer_size(65536)?;

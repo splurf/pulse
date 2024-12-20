@@ -33,7 +33,7 @@ fn main() -> Result {
     };
 
     // let tcp = TcpClient::new(cfg.addr_remote())?;
-    let udp = UdpClient::new(cfg.addr_local(), cfg.addr_remote())?;
+    let udp = UdpClient::new(cfg.local_addr(), cfg.remote_addr())?;
 
     // Buffer to store input samples to send to output
     let (input_sender, input_receiver) = bounded::<Vec<i16>>(1024);

@@ -7,3 +7,4 @@ edition = "2021"
 cpal = "0.15.3"
 opus = "0.3.0"
 pulse = { path = ".." }
+thiserror = "2.0.8"

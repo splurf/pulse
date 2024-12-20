@@ -2,7 +2,7 @@ use crate::*;
 
 pub type Result<T = (), E = Error> = std::result::Result<T, E>;
 
-#[derive(ThisError, Debug, Display)]
+#[derive(thiserror::Error, Debug, Display)]
 pub enum CpalError {
     HostUnavailable,
     DeviceName,
@@ -51,7 +51,7 @@ impl From<cpal::BuildStreamError> for CpalError {
     }
 }
 
-#[derive(ThisError, Debug)]
+#[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error(transparent)]
     Cpal(#[from] CpalError),
